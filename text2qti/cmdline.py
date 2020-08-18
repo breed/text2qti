@@ -11,7 +11,9 @@
 import argparse
 import os
 import pathlib
+import re
 import textwrap
+import traceback
 from .version import __version__ as version
 from .err import Text2qtiError
 from .config import Config
@@ -19,6 +21,13 @@ from .quiz import Quiz
 from .qti import QTI
 
 
+def get_file_contents(filename):
+    try:
+        with open(filename, "r") as f:
+            return f.read()
+    except:
+        traceback.print_exc()
+        return f"could not open {filename}"
 
 
 def main():
@@ -34,6 +43,10 @@ def main():
                         help='Allow special code blocks to be executed and insert their output (off by default for security)')
     parser.add_argument('--pandoc-mathml', action='store_const', const=True,
                         help='Convert LaTeX math to MathML using Pandoc (this will create a cache file "_text2qti_cache.zip" in the quiz file directory)')
+    parser.add_argument('--output',
+                        help='Specify a destination file')
+    parser.add_argument('--use-includes', action='store_const', const=True,
+                        help='recognize the {!filename!} syntax to include files')
     parser.add_argument('file',
                         help='File to convert from text to QTI')
     args = parser.parse_args()
@@ -85,11 +98,22 @@ def main():
     except UnicodeDecodeError as e:
         raise Text2qtiError(f'File "{file_path}" is not encoded in valid UTF-8:\n{e}')
 
+    if args.use_includes is not None:
+        replacements = {}
+        matches = re.finditer(r"{!([^!]+)!}", text)
+        for match in matches:
+            if match.group(0) not in replacements:
+                 replacements[match.group(0)] = get_file_contents(match.group(1))
+
+        for key in replacements:
+            text = text.replace(key, replacements[key])
+
     cwd = pathlib.Path.cwd()
     os.chdir(file_path.parent)
     try:
         quiz = Quiz(text, config=config, source_name=file_path.as_posix())
         qti = QTI(quiz)
-        qti.save(file_path.parent / f'{file_path.stem}.zip')
+        output = args.output if args.output is not None else file_path.parent / f'{file_path.stem}.zip'
+        qti.save(output)
     finally:
         os.chdir(cwd)
