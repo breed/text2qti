@@ -225,7 +225,7 @@ class Question(object):
                 points_num = float(points)
             except ValueError:
                 raise Text2qtiError(f'Invalid points value "{points}"; need positive integer or half-integer')
-            if points_num <= 0:
+            if points_num < 0:
                 raise Text2qtiError(f'Invalid points value "{points}"; need positive integer or half-integer')
             if points_num.is_integer():
                 points_num = int(points)
@@ -435,8 +435,6 @@ class Question(object):
             self.numerical_max_html_xml = f'{max}'
         else:
             raise Text2qtiError('Invalid numerical response; need "[<min>, <max>]" or "<number> +- <margin>" or "<integer>"')
-        if abs(min) < 1e-4 or abs(max) < 1e-4:
-            raise Text2qtiError('Invalid numerical response; all acceptable values must have a magnitude >= 0.0001')
 
 
     def finalize(self):
