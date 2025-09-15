@@ -517,7 +517,7 @@ class Group(object):
             self.points_per_question = int(text)
         except Exception as e:
             raise Text2qtiError(f'"Points per question" value is invalid (must be positive number):\n{e}')
-        if self.points_per_question <= 0:
+        if self.points_per_question < 0:
             raise Text2qtiError(f'"Points per question" value is invalid (must be positive number):')
         self._points_per_question_is_set = True
 
